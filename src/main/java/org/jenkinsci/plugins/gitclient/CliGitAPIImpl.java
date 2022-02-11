@@ -1020,7 +1020,7 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
             @Override
             public void execute() throws GitException, InterruptedException {
 
-
+                String result = null;
                 try {
                     ArgumentListBuilder args = new ArgumentListBuilder();
                     args.add("cherry-pick");
@@ -1032,9 +1032,32 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
                     }
                     launchCommand(args);
                 } catch (GitException e) {
-                    e.printStackTrace(listener.error("Failed to cherry-pick"));
+                    GitException lastException = e;
+                    boolean abort = false;
+                    while (!abort) {
+                        try {
+                            listener.getLogger().println("Cherry pick exception message :");
+                            String message = lastException.getMessage();
+                            listener.getLogger().println(message);
+
+                            if (message.contains("CONFLICT ")) {
+                                launchCommand("add", "--update");
+                                launchCommand("cherry-pick", "--continue");
+                                // exit from main catch
+                                return;
+                            } else {
+                                abort = true;
+                            }
+                        } catch (GitException ex) {
+                            lastException = ex;
+                        }
+                    }
+
+                    listener.getLogger().println("Abort cherry-pick.");
                     launchCommand("cherry-pick", "--abort");
-                    throw new GitException("Could not cherry-pick " + reference, e);
+
+                    lastException.printStackTrace(listener.getLogger());
+                    throw new GitException("Failed to cherry-pick.", lastException);
                 }
             }
         };
