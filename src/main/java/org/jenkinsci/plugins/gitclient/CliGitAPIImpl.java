@@ -992,6 +992,7 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
                     args.add(upstream);
                     launchCommand(args);
                 } catch (GitException e) {
+                    e.printStackTrace(listener.error("Failed to rebase "+ upstream));
                     launchCommand("rebase", "--abort");
                     throw new GitException("Could not rebase " + upstream, e);
                 }
@@ -1044,6 +1045,9 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
                                 launchCommand("add", "--update");
                                 launchCommand("cherry-pick", "--continue");
                                 // exit from main catch
+                                return;
+                            } else if (message.contains("The previous cherry-pick is now empty")) {
+                                launchCommand("cherry-pick", "--skip");
                                 return;
                             } else {
                                 abort = true;
