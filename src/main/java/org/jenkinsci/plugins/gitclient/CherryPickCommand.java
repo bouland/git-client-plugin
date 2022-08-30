@@ -18,6 +18,14 @@ public interface CherryPickCommand extends GitCommand {
     CherryPickCommand commits(List<ObjectId> commits);
 
     /**
+     * Pass the merge strategy-specific option through to the merge strategy.
+     *
+     * @param options a {@link java.util.List} string.
+     * @return a {@link org.jenkinsci.plugins.gitclient.CherryPickCommand} object.
+     */
+    CherryPickCommand options(List<String> options);
+
+    /**
      * Range or sha1 commits
      *
      * @param reference a {@link java.lang.String} object.

@@ -1005,10 +1005,17 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
         return new CherryPickCommand() {
             private String reference;
             private List<ObjectId> commits;
+            private List<String> options;
 
             @Override
             public CherryPickCommand commits(List<ObjectId> commits) {
                 this.commits = commits;
+                return this;
+            }
+
+            @Override
+            public CherryPickCommand options(List<String> options) {
+                this.options = options;
                 return this;
             }
 
@@ -1025,8 +1032,12 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
                 try {
                     ArgumentListBuilder args = new ArgumentListBuilder();
                     args.add("cherry-pick");
+                    args.add("-x");
                     if (reference != null) {
                         args.add(reference);
+                    }
+                    if (options != null) {
+                        this.options.forEach(o -> args.add("--strategy-option=" + o));
                     }
                     if (commits != null) {
                         this.commits.forEach(c -> args.add(c.name()));
