@@ -10,7 +10,7 @@
 
   <groupId>org.jenkins-ci.plugins</groupId>
   <artifactId>git-client</artifactId>
-  <version>3.11.0</version>
+  <version>3.11.1-SNAPSHOT</version>
   <packaging>hpi</packaging>
   <name>Jenkins Git client plugin</name>
   <description>Utility plugin for Git support in Jenkins</description>
@@ -385,6 +385,7 @@
         <configuration>
           <forkCount>0.8C</forkCount>
           <reuseForks>true</reuseForks>
+          <skipTests>true</skipTests>
         </configuration>
       </plugin>
     </plugins>

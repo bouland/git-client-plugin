@@ -390,6 +390,15 @@ class RemoteGitImpl implements GitClient, hudson.plugins.git.IGitAPI, Serializab
     }
 
     /**
+     * cherry-pick.
+     *
+     * @return a {@link org.jenkinsci.plugins.gitclient.CherryPickCommand} object.
+     */
+    public CherryPickCommand cherryPick() {
+        return command(CherryPickCommand.class);
+    }
+
+    /**
      * init_.
      *
      * @return a {@link org.jenkinsci.plugins.gitclient.InitCommand} object.
@@ -612,6 +621,11 @@ class RemoteGitImpl implements GitClient, hudson.plugins.git.IGitAPI, Serializab
     /** {@inheritDoc} */
     public List<ObjectId> revList(String ref) throws GitException, InterruptedException {
         return proxy.revList(ref);
+    }
+
+    @Override
+    public List<ObjectId> revListFull(String ref, int minParents, int maxParents, int maxCount, boolean parents, boolean reverse) throws GitException, InterruptedException {
+        return proxy.revListFull(ref, minParents, maxParents, maxCount, parents, reverse);
     }
 
     /** {@inheritDoc} */

@@ -986,8 +986,87 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
                     args.add(upstream);
                     launchCommand(args);
                 } catch (GitException e) {
+                    e.printStackTrace(listener.error("Failed to rebase "+ upstream));
                     launchCommand("rebase", "--abort");
                     throw new GitException("Could not rebase " + upstream, e);
+                }
+            }
+        };
+    }
+
+    @Override
+    public CherryPickCommand cherryPick() {
+        return new CherryPickCommand() {
+            private String reference;
+            private List<ObjectId> commits;
+            private List<String> options;
+
+            @Override
+            public CherryPickCommand commits(List<ObjectId> commits) {
+                this.commits = commits;
+                return this;
+            }
+
+            @Override
+            public CherryPickCommand options(List<String> options) {
+                this.options = options;
+                return this;
+            }
+
+            @Override
+            public CherryPickCommand setReference(String reference) {
+                this.reference = reference;
+                return this;
+            }
+
+            @Override
+            public void execute() throws GitException, InterruptedException {
+
+                String result = null;
+                try {
+                    ArgumentListBuilder args = new ArgumentListBuilder();
+                    args.add("cherry-pick");
+                    args.add("-x");
+                    if (reference != null) {
+                        args.add(reference);
+                    }
+                    if (options != null) {
+                        this.options.forEach(o -> args.add("--strategy-option=" + o));
+                    }
+                    if (commits != null) {
+                        this.commits.forEach(c -> args.add(c.name()));
+                    }
+                    launchCommand(args);
+                } catch (GitException e) {
+                    GitException lastException = e;
+                    boolean abort = false;
+                    while (!abort) {
+                        try {
+                            listener.getLogger().println("Cherry pick exception message :");
+                            String message = lastException.getMessage();
+                            listener.getLogger().println(message);
+
+                            if (message.contains("CONFLICT ")) {
+                                launchCommand("add", "--update");
+                                launchCommand("cherry-pick", "--continue");
+                                // exit from main catch
+                                return;
+                            } else if (message.contains("The previous cherry-pick is now empty")) {
+                                launchCommand("cherry-pick", "--skip");
+                                return;
+                            } else {
+                                abort = true;
+                            }
+                        } catch (GitException ex) {
+                            lastException = ex;
+                        }
+                    }
+
+                    listener.getLogger().println("Abort cherry-pick.");
+                    launchCommand("cherry-pick", "--abort");
+
+                    lastException.printStackTrace(listener.getLogger());
+                    throw new GitException("Failed to cherry-pick.", lastException);
                 }
             }
         };
@@ -3174,9 +3253,14 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
     @Override
     public RevListCommand revList_() {
         return new RevListCommand() {
+            private boolean reverse;
             private boolean all;
             private boolean nowalk;
             private boolean firstParent;
+            private boolean parents;
+            private Integer minParents;
+            private Integer maxParents;
+            private Integer maxCount;
             private String refspec;
             private List<ObjectId> out;
 
@@ -3212,6 +3296,30 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
             }
 
             @Override
+            public RevListCommand parents(boolean parents) {
+                this.parents = parents;
+                return this;
+            }
+
+            @Override
+            public RevListCommand minParents(int minParents) {
+                this.minParents = minParents;
+                return this;
+            }
+
+            @Override
+            public RevListCommand maxParents(int maxParents) {
+                this.maxParents = maxParents;
+                return this;
+            }
+
+            @Override
+            public RevListCommand maxCount(int maxCount) {
+                this.maxCount = maxCount;
+                return this;
+            }
+
+            @Override
             public RevListCommand to(List<ObjectId> revs){
                 this.out = revs;
                 return this;
@@ -3224,8 +3332,18 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
             }
 
             @Override
+            public RevListCommand reverse(boolean reverse) {
+                this.reverse = reverse;
+                return this;
+            }
+
+            @Override
             public void execute() throws GitException, InterruptedException {
                 ArgumentListBuilder args = new ArgumentListBuilder("rev-list");
+
+                if (reverse) {
+                    args.add("--reverse");
+                }
 
                 if (firstParent) {
                    args.add("--first-parent");
@@ -3237,6 +3355,26 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
 
                 if (nowalk) {
                     args.add("--no-walk");
+                }
+                if (parents) {
+                    if (maxCount != null) {
+                        throw new UnsupportedOperationException("the list 'to' is use to store parents");
+                    }
+                    // Enforce limit to 1 line, as 'to' is one-dimension.
+                    args.add("--max-count=1");
+                    args.add("--parents");
+                }
+
+                if (minParents != null) {
+                    args.add("--min-parents=" + minParents);
+                }
+
+                if (maxParents != null) {
+                    args.add("--max-parents=" + maxParents);
+                }
+
+                if (maxCount != null) {
+                    args.add("--max-count=" + maxCount);
                 }
 
                 if (refspec != null) {
@@ -3252,6 +3390,10 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
                 }
                 try {
                     while ((line = rdr.readLine()) != null) {
+                        if (parents) {
+                            Arrays.stream(line.split("\\s+")).forEach(sha1 -> out.add(ObjectId.fromString(sha1)));
+                            continue; // We could break;
+                        }
                         // Add the SHA1
                         out.add(ObjectId.fromString(line));
                     }
@@ -3289,6 +3431,33 @@ public class CliGitAPIImpl extends LegacyCompatibleGitAPIImpl {
         revListCommand.reference(ref);
         revListCommand.to(oidList);
         revListCommand.execute();
+        return oidList;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<ObjectId> revListFull(String ref, int minParents, int maxParents, int maxCount, boolean parents, boolean reverse) throws GitException, InterruptedException {
+        List<ObjectId> oidList = new ArrayList<>();
+        RevListCommand revListCommand = revList_();
+        if (minParents > 0) {
+            revListCommand.minParents(minParents);
+        }
+        if (maxParents > 0) {
+            revListCommand.maxParents(maxParents);
+        }
+        if (maxCount > 0) {
+            revListCommand.maxCount(maxCount);
+        }
+        if (parents) {
+            revListCommand.parents(true);
+        }
+        if (reverse) {
+            revListCommand.reverse(true);
+        }
+        revListCommand.reference(ref);
+        revListCommand.to(oidList);
+        revListCommand.execute();
+
         return oidList;
     }
 

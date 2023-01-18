@@ -1649,6 +1649,11 @@ public class JGitAPIImpl extends LegacyCompatibleGitAPIImpl {
         };
     }
 
+    @Override
+    public CherryPickCommand cherryPick() {
+        return null;
+    }
+
     /** {@inheritDoc} */
     @Override
     public void deleteTag(String tagName) throws GitException {
@@ -1995,9 +2000,14 @@ public class JGitAPIImpl extends LegacyCompatibleGitAPIImpl {
     public RevListCommand revList_()
     {
         return new RevListCommand() {
+            boolean reverse;
             private boolean all;
             private boolean nowalk;
             private boolean firstParent;
+            private boolean parents;
+            private Integer minParents;
+            private Integer maxParents;
+            private Integer maxCount;
             private String refspec;
             private List<ObjectId> out;
 
@@ -2030,6 +2040,30 @@ public class JGitAPIImpl extends LegacyCompatibleGitAPIImpl {
             }
 
             @Override
+            public RevListCommand parents(boolean parents) {
+                this.parents = parents;
+                return this;
+            }
+
+            @Override
+            public RevListCommand minParents(int minParents) {
+                this.minParents = minParents;
+                return this;
+            }
+
+            @Override
+            public RevListCommand maxParents(int maxParents) {
+                this.maxParents = maxParents;
+                return this;
+            }
+
+            @Override
+            public RevListCommand maxCount(int maxCount) {
+                this.maxCount = maxCount;
+                return this;
+            }
+
+            @Override
             public RevListCommand to(List<ObjectId> revs){
                 this.out = revs;
                 return this;
@@ -2042,9 +2076,30 @@ public class JGitAPIImpl extends LegacyCompatibleGitAPIImpl {
             }
 
             @Override
-            public void execute() throws GitException {
+            public RevListCommand reverse(boolean reverse) {
+                this.reverse = reverse;
+                return this;
+            }
+
+            @Override
+            public void execute() throws GitException, InterruptedException {
+                if (reverse) {
+                    throw new UnsupportedOperationException("not implemented yet");
+                }
                 if (firstParent) {
-                  throw new UnsupportedOperationException("not implemented yet");
+                    throw new UnsupportedOperationException("not implemented yet");
+                }
+                if (parents) {
+                    throw new UnsupportedOperationException("not implemented yet");
+                }
+                if (minParents != null) {
+                    throw new UnsupportedOperationException("not implemented yet");
+                }
+                if (maxParents != null) {
+                    throw new UnsupportedOperationException("not implemented yet");
+                }
+                if (maxCount != null) {
+                    throw new UnsupportedOperationException("not implemented yet");
                 }
 
                 try (Repository repo = getRepository();
@@ -2125,6 +2180,11 @@ public class JGitAPIImpl extends LegacyCompatibleGitAPIImpl {
             throw new GitException(e);
         }
         return oidList;
+    }
+
+    @Override
+    public List<ObjectId> revListFull(String ref, int minParents, int maxParents, int maxCount, boolean parents, boolean reverse) throws GitException, InterruptedException {
+        throw new UnsupportedOperationException("not implemented yet");
     }
 
     /** {@inheritDoc} */

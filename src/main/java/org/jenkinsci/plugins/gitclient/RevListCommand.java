@@ -54,6 +54,42 @@ public interface RevListCommand extends GitCommand {
     RevListCommand firstParent(boolean firstParent);
 
     /**
+     * Print also the parents of the commit (in the form "commit parent…").
+     *
+     * @param parents {@code true} to list parents
+     * @return a {@link org.jenkinsci.plugins.gitclient.RevListCommand} object.
+     * @since 2.5.0
+     */
+    RevListCommand parents(boolean parents);
+
+    /**
+     * Show only commits which have at least that many parent commits.
+     *
+     * @param minParents {@code int} to limit the parents.
+     * @return a {@link org.jenkinsci.plugins.gitclient.RevListCommand} object.
+     * @since 2.5.0
+     */
+    RevListCommand minParents(int minParents);
+
+    /**
+     * Show only commits which have at most that many parent commits.
+     *
+     * @param maxParents {@code int} to limit the parents.
+     * @return a {@link org.jenkinsci.plugins.gitclient.RevListCommand} object.
+     * @since 2.5.0
+     */
+    RevListCommand maxParents(int maxParents);
+
+    /**
+     * Limit the number of commits to output.
+     *
+     * @param maxCount {@code int} to limit the number of commits to output.
+     * @return a {@link org.jenkinsci.plugins.gitclient.RevListCommand} object.
+     * @since 2.5.0
+     */
+    RevListCommand maxCount(int maxCount);
+
+    /**
      * to.
      *
      * @param revs a {@link java.util.List} object.
@@ -68,4 +104,13 @@ public interface RevListCommand extends GitCommand {
      * @return a {@link org.jenkinsci.plugins.gitclient.RevListCommand} object.
      */
     RevListCommand reference(String reference);
+
+    /**
+     * Output the commits chosen to be shown in reverse order.
+     *
+     * @param reverse {@code true} to reverse order
+     * @return a {@link org.jenkinsci.plugins.gitclient.RevListCommand} object.
+     * @since 2.5.0
+     */
+    RevListCommand reverse(boolean reverse);
 }
